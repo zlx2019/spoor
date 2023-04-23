@@ -18,57 +18,59 @@ import (
 	"time"
 )
 
-// DefaultSpoor 默认的Spoor日志组件
-func DefaultSpoor() (*zap.Logger, *zap.SugaredLogger, error) {
-	return NewSpoor(DefaultOption())
-}
 
-// NewSpoor 初始化日志组件
-// options 配置选项
-func NewSpoor(opt *Options) (*zap.Logger, *zap.SugaredLogger, error) {
+
+// NewLogger 根据配置选项,创建一个Zap日志组件
+func NewLogger(opt *Config) (*zap.Logger, error) {
 	// 创建Zap Encoder
 	var encoder zapcore.Encoder
 	// 根据配置不同的日志风格,获取不同的日志编码器
 	if opt.Style {
-		encoder = NewJsonEncoder(opt)
+		encoder = newJsonEncoder(opt)
 	} else {
-		encoder = NewTextEncoder(false, opt)
+		encoder = newTextEncoder(false, opt)
 	}
 	// 创建Zap Core
 	var err error
 	var core zapcore.Core
-	if !opt.EnableFileSave {
+	if !opt.LogWriterFile {
 		// 日志不写入文件
-		core = zapcore.NewCore(NewTextEncoder(opt.Color, opt), os.Stdout, opt.LogLevel)
+		core = zapcore.NewCore(newTextEncoder(opt.Color, opt), os.Stdout, opt.LogLevel)
 	} else {
 		// 日志文件持久化,创建多个Core
-		core, err = NewCores(opt, encoder)
+		core, err = newCores(opt, encoder)
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	// 创建Zap实例。输出日志位置
-	logger := zap.New(core, zap.AddCaller())
-	return logger, logger.Sugar(), nil
+	// Err级别日志,打印堆栈错误信息
+	//addStacktrace := zap.AddStacktrace(zap.ErrorLevel)
+	// 开启文件及行号显示
+	//addCallerOpt := zap.AddCaller()
+	// 创建Zap实例,并且注册插件
+	logger := zap.New(core,opt.Plugins...)
+	// zap全局实例也使用该实例
+	zap.ReplaceGlobals(logger)
+	return logger, nil
 }
 
-// NewCores 构建Zap Core
-func NewCores(opt *Options, encoder zapcore.Encoder) (zapcore.Core, error) {
+// newCores 构建Zap Core
+func newCores(opt *Config, encoder zapcore.Encoder) (zapcore.Core, error) {
 	// 判断需要生成一或多个日志文件
-	if opt.LevelRecording {
+	if opt.LogWriterFromLevel {
 		// 详细记录 按照不同的日志级别,写入不到不同的日志文件中.只划分三个等级 info、debug、error。error文件中存储所有大于info级别的日志
 		// 创建info级别Core
-		infoCore, err := NewLevelCore(zapcore.InfoLevel, opt, encoder)
+		infoCore, err := newLevelCore(zapcore.InfoLevel, opt, encoder)
 		if err != nil {
 			return nil, err
 		}
 		// 创建debug级别Core
-		debugCore, err := NewLevelCore(zapcore.DebugLevel, opt, encoder)
+		debugCore, err := newLevelCore(zapcore.DebugLevel, opt, encoder)
 		if err != nil {
 			return nil, err
 		}
 		// 创建Warn、Error、Panic、Fatal级别Core
-		errorCore, err := NewLevelCore(zapcore.ErrorLevel, opt, encoder)
+		errorCore, err := newLevelCore(zapcore.ErrorLevel, opt, encoder)
 		if err != nil {
 			return nil, err
 		}
@@ -76,7 +78,7 @@ func NewCores(opt *Options, encoder zapcore.Encoder) (zapcore.Core, error) {
 		var stdoutCore zapcore.Core
 		// 是否启用终端日志级别高亮
 		if opt.Color {
-			stdoutCore = zapcore.NewCore(NewTextEncoder(true, opt), os.Stdout, opt.LogLevel)
+			stdoutCore = zapcore.NewCore(newTextEncoder(true, opt), os.Stdout, opt.LogLevel)
 		} else {
 			stdoutCore = zapcore.NewCore(encoder, os.Stdout, opt.LogLevel)
 		}
@@ -84,7 +86,7 @@ func NewCores(opt *Options, encoder zapcore.Encoder) (zapcore.Core, error) {
 		return cores, nil
 	} else {
 		// 所有日志记录到一个日志文件中
-		fileWriter, err := NewLoggerWriter(opt.GetFileName(), opt)
+		fileWriter, err := newLoggerWriter(opt.GetFileName(), opt)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +97,7 @@ func NewCores(opt *Options, encoder zapcore.Encoder) (zapcore.Core, error) {
 		var stdoutCore zapcore.Core
 		// 是否启用终端日志级别高亮
 		if opt.Color {
-			stdoutCore = zapcore.NewCore(NewTextEncoder(true, opt), os.Stdout, opt.LogLevel)
+			stdoutCore = zapcore.NewCore(newTextEncoder(true, opt), os.Stdout, opt.LogLevel)
 		} else {
 			stdoutCore = zapcore.NewCore(encoder, os.Stdout, opt.LogLevel)
 		}
@@ -105,10 +107,10 @@ func NewCores(opt *Options, encoder zapcore.Encoder) (zapcore.Core, error) {
 	}
 }
 
-// NewLevelCore 根据不同日志级别创建Zap Core
-func NewLevelCore(level zapcore.Level, opt *Options, encoder zapcore.Encoder) (zapcore.Core, error) {
+// newLevelCore 根据不同日志级别创建Zap Core
+func newLevelCore(level zapcore.Level, opt *Config, encoder zapcore.Encoder) (zapcore.Core, error) {
 	// 创建日志文件流
-	writer, err := NewLoggerWriter(opt.GetFileNameLevel(level.String()), opt)
+	writer, err := newLoggerWriter(opt.GetFileNameLevel(level.String()), opt)
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("create %s level file error \n", level.String()))
 	}
@@ -133,8 +135,8 @@ func NewLevelCore(level zapcore.Level, opt *Options, encoder zapcore.Encoder) (z
 	return core, nil
 }
 
-// NewTextEncoder 构建一个Text风格日志编码器。color表示是否启用高亮颜色
-func NewTextEncoder(color bool, opt *Options) zapcore.Encoder {
+// newTextEncoder 构建一个Text风格日志编码器。color表示是否启用高亮颜色
+func newTextEncoder(color bool, opt *Config) zapcore.Encoder {
 	// 创建一个生产级别专用的EncoderConfig
 	config := zap.NewProductionEncoderConfig()
 	// 日志级别默认为小写`info`,转为大写`INFO`
@@ -153,8 +155,8 @@ func NewTextEncoder(color bool, opt *Options) zapcore.Encoder {
 	return zapcore.NewConsoleEncoder(config)
 }
 
-// NewJsonEncoder 创建一个Json风格日志编码器
-func NewJsonEncoder(opt *Options) zapcore.Encoder {
+// newJsonEncoder 创建一个Json风格日志编码器
+func newJsonEncoder(opt *Config) zapcore.Encoder {
 	// 创建一个生产级别专用的EncoderConfig
 	config := zap.NewProductionEncoderConfig()
 	// 默认的Json key并不友好,定义为自己喜欢的标识
@@ -178,8 +180,8 @@ func datetimeFormat(t time.Time, e zapcore.PrimitiveArrayEncoder) {
 	e.AppendString(fmt.Sprintf("[%s]", datetime))
 }
 
-// NewLoggerWriter 创建日志文件输入流
-func NewLoggerWriter(fileName string, opt *Options) (zapcore.WriteSyncer, error) {
+// newLoggerWriter 创建日志文件输入流
+func newLoggerWriter(fileName string, opt *Config) (zapcore.WriteSyncer, error) {
 	// 日志文件名,加上根据日期时间后缀
 	logFileName := fmt.Sprintf("%s.%s", fileName, "%Y-%m-%d.log")
 	// 日志临时当前文件名
