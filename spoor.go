@@ -59,7 +59,10 @@ func NewDefaultSpoor() (*Spoor, error) {
 }
 
 // NewSpoor 根据配置构建日志组件
-func NewSpoor(config *Config) (*Spoor, error) {
+func NewSpoor(config *Config, options ...Option) (*Spoor, error) {
+	for _, opt := range options {
+		opt(config)
+	}
 	return newLogger(config)
 }
 

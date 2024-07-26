@@ -8,74 +8,55 @@
 package spoor
 
 import (
-	"fmt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"path/filepath"
-	"strings"
 	"time"
 )
 
-// Config Zap日志组件配置体
-// LogDir  日志文件存放目录,默认为 [当前项目根目录/logs/]
-// FileName 日志文件名。默认为 `app`
-// LogLevel 日志级别。默认为INFO
-// LogPrefix 日志前缀。
-// LogWriterFile 是否启用日志文件持久化。默认为False
-// LogWriterFromLevel 是否按照日志级别写入不同的日志文件。默认为false
-// LogSplitTime 日志分割时间。 默认为24小时
-// MaxSaveTime 日志文件最大保留时间。 默认为7天
-// MaxFileSize 日志文件最大限制,超过后生成新的日志文件。 默认100mb
-// Style 写入文件内的日志格式是否以Json格式。默认为false
-// Plugins ZapOptions插件选项
-// WrapSkip 要省略的调用栈层
+// Config 日志配置
 type Config struct {
-	LogDir             string
-	FileName           string
-	LogLevel           zapcore.Level
-	LogPrefix          string
-	LogWriterFile      bool
-	LogWriterFromLevel bool
-	LogSplitTime       time.Duration
-	MaxSaveTime        time.Duration
-	MaxFileSize        int64
-	Style              bool
-	Plugins            []zap.Option
-	WrapSkip           int
+	LogDir         string          // 日志文件存放目录,默认为 [./logs]
+	FileName       string          // 日志级别。默认为INFO
+	Level          zapcore.Level   // 日志前缀(暂无作用)。
+	LogPrefix      string          // 日志前缀
+	WriteFile      bool            // 日志是否写入文件。
+	FileSeparate   bool            // 日志文件按级别分离
+	JsonStyle      bool            // 写入文件内的日志格式是否以Json格式。默认为false
+	Plugins        []zap.Option    // zap 选项
+	WrapSkip       int             // 要省略的调用栈层
+	timeCutter     *timeCutter     // 日志文件分割规则
+	fileSizeCutter *fileSizeCutter // 日志文件分割规则
 }
 
-// GetFileName 获取日志目录+文件名
-// logs/xxx
-func (opt Config) GetFileName() string {
-	if !strings.HasSuffix(opt.LogDir, string(filepath.Separator)) {
-		return fmt.Sprintf("%s%s%s", opt.LogDir, string(filepath.Separator), opt.FileName)
-	} else {
-		return fmt.Sprintf("%s%s", opt.LogDir, opt.FileName)
-	}
+// TimeCutter 按照时间分割日志配置
+type timeCutter struct {
+	SeparateTime time.Duration // 日志多久分割一次，产生新的日志文件
+	MaxAge       time.Duration // 日志文件能保留的最大时间
+	MaxFileSize  int64         // 日志文件最大可写入的日志量(byte)
 }
 
-// GetFileNameLevel 根据日志级别,获取日志目录+文件名
-func (opt Config) GetFileNameLevel(level string) string {
-	if !strings.HasSuffix(opt.LogDir, string(filepath.Separator)) {
-		return fmt.Sprintf("%s%s%s%s%s", opt.LogDir, string(filepath.Separator), level, string(filepath.Separator), opt.FileName)
-	} else {
-		return fmt.Sprintf("%s%s%s%s", opt.LogDir, level, string(filepath.Separator), opt.FileName)
-	}
+// FileSizeCutter 按照文件大小分割日志配置
+type fileSizeCutter struct {
+	MaxBackups  int // 最多保留的日志文件数量
+	MaxAge      int // 日志文件最大能保留的天数
+	MaxFileSize int // 日志文件最大可写入的日志量(mb)
 }
 
 // DefaultConfig 获取默认配置项
 func DefaultConfig() *Config {
 	return &Config{
-		LogDir:             "./logs",
-		FileName:           "app",
-		LogLevel:           zapcore.DebugLevel,
-		LogWriterFile:      false,
-		LogWriterFromLevel: false,
-		LogSplitTime:       time.Hour * 24,
-		MaxSaveTime:        time.Hour * 24 * 7,
-		MaxFileSize:        1024 * 1024 * 100,
-		Style:              false,
-		Plugins:            []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
-		WrapSkip:           0,
+		LogDir:       "./logs",
+		FileName:     "app",
+		Level:        zapcore.DebugLevel,
+		WriteFile:    false,
+		FileSeparate: false,
+		JsonStyle:    false,
+		Plugins:      []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
+		WrapSkip:     0,
+		fileSizeCutter: &fileSizeCutter{
+			MaxBackups:  10,
+			MaxAge:      30,
+			MaxFileSize: 100,
+		},
 	}
 }
