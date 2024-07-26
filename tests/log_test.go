@@ -9,28 +9,23 @@ package tests
 
 import (
 	"github.com/zlx2019/spoor"
+	"go.uber.org/zap"
 	"testing"
 )
 
 func TestName(t *testing.T) {
-	//option := spoor.DefaultConfig()
-	//option.LogWriterFile = true
-	//logger, err := spoor.NewDefaultSpoor()
-	logger, err := spoor.NewSpoor(spoor.WithWriterFile(), spoor.WithWriterFileFromLevel())
-	logger, err = spoor.NewLogger(&spoor.Config{
-		LogDir:             "",
-		FileName:           "",
-		LogLevel:           0,
-		LogPrefix:          "",
-		LogWriterFile:      false,
+	logger, err := spoor.NewLogger(&spoor.Config{
+		LogDir:             "./logs",
+		FileName:           "test_app",
+		LogLevel:           zap.DebugLevel,
+		LogWriterFile:      true,
 		LogWriterFromLevel: false,
 		LogSplitTime:       0,
 		MaxSaveTime:        0,
 		MaxFileSize:        0,
 		Style:              false,
-		Color:              false,
-		RootPath:           "",
-		Plugins:            nil,
+		Plugins:            []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
+		WrapSkip:           1,
 	})
 	if err != nil {
 		panic(err)
@@ -42,5 +37,6 @@ func TestName(t *testing.T) {
 	logger.Info("INFO")
 	logger.Debug("DEBUG")
 	logger.Error("ERROR")
+	logger.Warn("Warn")
 	sugaredLogger.Infof("username %s", "admin")
 }

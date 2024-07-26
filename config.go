@@ -11,14 +11,12 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
 
 // Config Zap日志组件配置体
-//
 // LogDir  日志文件存放目录,默认为 [当前项目根目录/logs/]
 // FileName 日志文件名。默认为 `app`
 // LogLevel 日志级别。默认为INFO
@@ -29,9 +27,8 @@ import (
 // MaxSaveTime 日志文件最大保留时间。 默认为7天
 // MaxFileSize 日志文件最大限制,超过后生成新的日志文件。 默认100mb
 // Style 写入文件内的日志格式是否以Json格式。默认为false
-// Color 终端日志级别是否高亮显示。默认为True
-// RootPath 当前项目根目录
 // Plugins ZapOptions插件选项
+// WrapSkip 要省略的调用栈层
 type Config struct {
 	LogDir             string
 	FileName           string
@@ -43,9 +40,8 @@ type Config struct {
 	MaxSaveTime        time.Duration
 	MaxFileSize        int64
 	Style              bool
-	Color              bool
-	RootPath           string
 	Plugins            []zap.Option
+	WrapSkip           int
 }
 
 // GetFileName 获取日志目录+文件名
@@ -70,22 +66,17 @@ func (opt Config) GetFileNameLevel(level string) string {
 
 // DefaultConfig 获取默认配置项
 func DefaultConfig() *Config {
-	// 获取当前工作主目录
-	rootPath, _ := os.Getwd()
-	rootPath = rootPath + string(filepath.Separator)
 	return &Config{
-		LogDir:             rootPath + "logs",
+		LogDir:             "./logs",
 		FileName:           "app",
 		LogLevel:           zapcore.DebugLevel,
-		LogPrefix:          "[Spoor]",
 		LogWriterFile:      false,
 		LogWriterFromLevel: false,
 		LogSplitTime:       time.Hour * 24,
 		MaxSaveTime:        time.Hour * 24 * 7,
 		MaxFileSize:        1024 * 1024 * 100,
 		Style:              false,
-		Color:              true,
-		RootPath:           rootPath,
 		Plugins:            []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
+		WrapSkip:           0,
 	}
 }
