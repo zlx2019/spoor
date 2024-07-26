@@ -17,36 +17,57 @@ func (sp *Spoor) Info(s string) {
 	sp.Logger.Info(s)
 }
 
-func (sp *Spoor) InfoSf(s string) {
-	sp.Sugar().Infof(s)
+func (sp *Spoor) InfoSf(s string, v ...interface{}) {
+	sp.Sugar().Infof(s, v...)
 }
 
 func (sp *Spoor) Debug(s string) {
 	sp.Logger.Debug(s)
 }
 
-func (sp *Spoor) DebugSf(s string) {
-	sp.Sugar().Debugf(s)
+func (sp *Spoor) DebugSf(s string, v ...interface{}) {
+	sp.Sugar().Debugf(s, v...)
 }
 
 func (sp *Spoor) Error(s string) {
 	sp.Logger.Error(s)
 }
 
-func (sp *Spoor) ErrorSf(s string) {
-	sp.Sugar().Errorf(s)
+func (sp *Spoor) ErrorSf(s string, v ...interface{}) {
+	sp.Sugar().Errorf(s, v...)
+}
+
+func (sp *Spoor) Panic(s string) {
+	sp.Logger.Panic(s)
+}
+
+func (sp *Spoor) PanicSf(s string, v ...interface{}) {
+	sp.Sugar().Panicf(s, v...)
+}
+
+func (sp *Spoor) Fatal(s string) {
+	sp.Logger.Fatal(s)
+}
+
+func (sp *Spoor) FatalSf(s string, v ...interface{}) {
+	sp.Sugar().Fatalf(s, v...)
 }
 
 // NewDefaultSpoor 构建默认的日志组件
 func NewDefaultSpoor() (*Spoor, error) {
-	return NewLogger(DefaultConfig())
+	return newLogger(DefaultConfig())
 }
 
-// NewSpoor 创建日志组件
-func NewSpoor(options ...Option) (*Spoor, error) {
+// NewSpoor 根据配置构建日志组件
+func NewSpoor(config *Config) (*Spoor, error) {
+	return newLogger(config)
+}
+
+// NewSpoorWithOptions 创建日志组件
+func NewSpoorWithOptions(options ...Option) (*Spoor, error) {
 	config := DefaultConfig()
 	for _, option := range options {
 		option(config)
 	}
-	return NewLogger(config)
+	return newLogger(config)
 }

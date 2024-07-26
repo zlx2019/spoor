@@ -55,7 +55,6 @@ func (opt Config) GetFileName() string {
 }
 
 // GetFileNameLevel 根据日志级别,获取日志目录+文件名
-// logs/info/xxx
 func (opt Config) GetFileNameLevel(level string) string {
 	if !strings.HasSuffix(opt.LogDir, string(filepath.Separator)) {
 		return fmt.Sprintf("%s%s%s%s%s", opt.LogDir, string(filepath.Separator), level, string(filepath.Separator), opt.FileName)

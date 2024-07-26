@@ -17,8 +17,8 @@ import (
 	"os"
 )
 
-// NewLogger 根据配置选项,创建一个Zap日志组件
-func NewLogger(opt *Config) (*Spoor, error) {
+// 根据配置选项,创建一个Zap日志组件
+func newLogger(opt *Config) (*Spoor, error) {
 	// 创建Zap Encoder
 	var encoder zapcore.Encoder
 	if opt.Style {

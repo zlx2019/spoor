@@ -14,7 +14,7 @@ import (
 )
 
 func TestName(t *testing.T) {
-	logger, err := spoor.NewLogger(&spoor.Config{
+	logger, err := spoor.newLogger(&spoor.Config{
 		LogDir:             "./logs",
 		FileName:           "test_app",
 		LogLevel:           zap.DebugLevel,
