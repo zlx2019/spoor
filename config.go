@@ -19,6 +19,7 @@ type Config struct {
 	FileName       string          // 日志级别。默认为INFO
 	Level          zapcore.Level   // 日志前缀(暂无作用)。
 	LogPrefix      string          // 日志前缀
+	LogTimeFormat  string          // 日志时间格式
 	WriteFile      bool            // 日志是否写入文件。
 	FileSeparate   bool            // 日志文件按级别分离
 	JsonStyle      bool            // 写入文件内的日志格式是否以Json格式。默认为false
@@ -45,18 +46,29 @@ type fileSizeCutter struct {
 // DefaultConfig 获取默认配置项
 func DefaultConfig() *Config {
 	return &Config{
-		LogDir:       "./logs",
-		FileName:     "app",
-		Level:        zapcore.DebugLevel,
-		WriteFile:    false,
-		FileSeparate: false,
-		JsonStyle:    false,
-		Plugins:      []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
-		WrapSkip:     0,
+		LogDir:        "./logs",
+		FileName:      "app",
+		Level:         zapcore.DebugLevel,
+		WriteFile:     false,
+		FileSeparate:  false,
+		LogTimeFormat: "2006/01/02 15:04:05",
+		JsonStyle:     false,
+		Plugins:       []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
+		WrapSkip:      0,
 		fileSizeCutter: &fileSizeCutter{
 			MaxBackups:  10,
 			MaxAge:      30,
 			MaxFileSize: 100,
 		},
+	}
+}
+
+// 初始化检查
+func (opt *Config) setupDefault() {
+	if opt.LogDir == "" {
+		opt.LogDir = "./logs"
+	}
+	if opt.LogTimeFormat == "" {
+		opt.LogTimeFormat = "2006/01/02 15:04:05"
 	}
 }

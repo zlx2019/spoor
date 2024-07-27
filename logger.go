@@ -19,12 +19,13 @@ import (
 
 // 根据配置选项,创建一个Zap日志组件
 func newLogger(opt *Config) (*Spoor, error) {
+	opt.setupDefault()
 	// 创建Zap Encoder
 	var encoder zapcore.Encoder
 	if opt.JsonStyle {
-		encoder = zapcore.NewJSONEncoder(consoleLoggerEncoder())
+		encoder = zapcore.NewJSONEncoder(consoleLoggerEncoder(opt.LogTimeFormat))
 	} else {
-		encoder = zapcore.NewConsoleEncoder(consoleLoggerEncoder())
+		encoder = zapcore.NewConsoleEncoder(consoleLoggerEncoder(opt.LogTimeFormat))
 	}
 	// 创建Zap Core
 	var err error
@@ -91,15 +92,17 @@ func newCores(opt *Config, encoder zapcore.Encoder) (zapcore.Core, error) {
 	// 合并输入流,将日志同时写到终端和文件中
 	var fileCore zapcore.Core
 	if opt.JsonStyle {
-		fileCore = zapcore.NewCore(zapcore.NewJSONEncoder(fileLoggerEncoder()), writerSyncer, opt.Level)
+		fileCore = zapcore.NewCore(zapcore.NewJSONEncoder(fileLoggerEncoder(opt.LogTimeFormat)), writerSyncer, opt.Level)
 	} else {
-		fileCore = zapcore.NewCore(zapcore.NewConsoleEncoder(fileLoggerEncoder()), writerSyncer, opt.Level)
+		fileCore = zapcore.NewCore(zapcore.NewConsoleEncoder(fileLoggerEncoder(opt.LogTimeFormat)), writerSyncer, opt.Level)
 	}
 	// 创建终端日志流
 	stdoutCore := zapcore.NewCore(encoder, os.Stdout, opt.Level)
 	// 是否启用终端日志级别高亮
 	// 合并为一个core
 	core := zapcore.NewTee(fileCore, stdoutCore)
+	//  TODO 添加日志统一
+	// core = core.With([]zap.Field{zap.String("prefix", "APP")})
 	return core, nil
 }
 
@@ -138,9 +141,9 @@ func newLevelCore(level zapcore.Level, opt *Config) (zapcore.Core, error) {
 	// 创建Core
 	var core zapcore.Core
 	if opt.JsonStyle {
-		core = zapcore.NewCore(zapcore.NewJSONEncoder(fileLoggerEncoder()), writeSyncer, condition)
+		core = zapcore.NewCore(zapcore.NewJSONEncoder(fileLoggerEncoder(opt.LogTimeFormat)), writeSyncer, condition)
 	} else {
-		core = zapcore.NewCore(zapcore.NewConsoleEncoder(fileLoggerEncoder()), writeSyncer, condition)
+		core = zapcore.NewCore(zapcore.NewConsoleEncoder(fileLoggerEncoder(opt.LogTimeFormat)), writeSyncer, condition)
 	}
 	return core, nil
 }

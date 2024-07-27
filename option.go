@@ -76,3 +76,10 @@ func WithPlugins(options ...zap.Option) Option {
 		config.Plugins = append(config.Plugins, options...)
 	}
 }
+
+// WithTimeFormat 指定日志时间格式
+func WithTimeFormat(format string) Option {
+	return func(config *Config) {
+		config.LogTimeFormat = format
+	}
+}
