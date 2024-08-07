@@ -32,6 +32,8 @@ func TestName(t *testing.T) {
 	defer logger.Sync()
 
 	sugaredLogger := logger.Sugar()
+	logger.LogSf(spoor.INFO, "Hello World: %s", "张三")
+	logger.LogSf(spoor.DEBUG, "Hello World: %s", "张三")
 
 	logger.Info("INFO")
 	logger.Debug("DEBUG")

@@ -27,12 +27,12 @@ type Spoor struct {
 	*zap.Logger
 }
 
-func (sp *Spoor) Log(level logLevel, s string, fields ...zap.Field) {
-	sp.Logger.Log(zapcore.Level(level), s, fields...)
+func (sp *Spoor) Log(level zapcore.Level, s string, fields ...zap.Field) {
+	sp.Logger.Log(level, s, fields...)
 }
 
-func (sp *Spoor) LogSf(level logLevel, s string, v ...interface{}) {
-	sp.Logger.Sugar().Logf(zapcore.Level(level), s, v)
+func (sp *Spoor) LogSf(level zapcore.Level, s string, v ...interface{}) {
+	sp.Logger.Sugar().Logf(level, s, v)
 }
 
 func (sp *Spoor) Info(s string, fields ...zap.Field) {
