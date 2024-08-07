@@ -15,29 +15,48 @@ import (
 // Option 可选配置选项闭包函数
 type Option func(*Config)
 
-// WithWriterFile 开启日志写入文件
-func WithWriterFile() Option {
+// WithWriteFile 开启日志写入文件
+func WithWriteFile() Option {
 	return func(config *Config) {
-		config.LogWriterFile = true
+		config.WriteFile = true
 	}
 }
 
-
-// WithWriterFileFromLevel 开启根据日志级别写入不同日志文件
+// WithFileSeparate 开启根据日志级别写入不同日志文件
 // DEBUG、INFO、ERROR共三个级别
-func WithWriterFileFromLevel() Option {
+func WithFileSeparate() Option {
 	return func(config *Config) {
-		config.LogWriterFromLevel = true
+		config.FileSeparate = true
 	}
 }
 
 // WithLogFileInfo 配置日志文件限制信息
 // 多次时间分割一次文件
 // 文件保留多长时间
-func WithLogFileInfo(splitTIme,maxSaveTime time.Duration) Option{
+func WithLogFileInfo(splitTIme, maxSaveTime time.Duration, maxFileSize int) Option {
 	return func(config *Config) {
-		config.LogSplitTime = splitTIme
-		config.MaxSaveTime = maxSaveTime
+	}
+}
+
+// WithTimeCutter 日志文件按照时间分割.
+func WithTimeCutter(separateTime, maxAge time.Duration, maxFileSize int64) Option {
+	return func(config *Config) {
+		config.timeCutter = &timeCutter{
+			SeparateTime: separateTime,
+			MaxAge:       maxAge,
+			MaxFileSize:  maxFileSize,
+		}
+	}
+}
+
+// WithFileSizeCutter 日志文件按照大小分割.
+func WithFileSizeCutter(maxBackups, maxAge, maxFileSize int) Option {
+	return func(config *Config) {
+		config.fileSizeCutter = &fileSizeCutter{
+			MaxBackups:  maxBackups,
+			MaxAge:      maxAge,
+			MaxFileSize: maxBackups,
+		}
 	}
 }
 
@@ -45,15 +64,22 @@ func WithLogFileInfo(splitTIme,maxSaveTime time.Duration) Option{
 func WithJsonStyle() Option {
 	return func(config *Config) {
 		// Json风格日志只写入日志文件内
-		if config.LogWriterFile {
-			config.Style = true
+		if config.WriteFile {
+			config.JsonStyle = true
 		}
 	}
 }
 
 // WithPlugins 注册Zap选项插件
-func WithPlugins(options ...zap.Option) Option{
+func WithPlugins(options ...zap.Option) Option {
 	return func(config *Config) {
-		config.Plugins = append(config.Plugins,options...)
+		config.Plugins = append(config.Plugins, options...)
+	}
+}
+
+// WithTimeFormat 指定日志时间格式
+func WithTimeFormat(format string) Option {
+	return func(config *Config) {
+		config.LogTimeFormat = format
 	}
 }

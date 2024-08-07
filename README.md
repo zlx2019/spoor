@@ -53,33 +53,32 @@ func main() {
 
 ```go
 func main() {
-    // LogDir  日志文件存放目录,默认为 [当前项目根目录/logs/]
+    // LogDir  日志文件存放目录,默认为 [./logs]
     // FileName 日志文件名。默认为 `app`
-    // LogLevel 日志级别。默认为INFO
-    // LogPrefix 日志前缀。
-    // LogWriterFile 是否启用日志文件持久化。默认为False
-    // LogWriterFromLevel 是否按照日志级别写入不同的日志文件。默认为false
+    // Level 日志级别。默认为INFO
+    // LogPrefix 日志前缀(暂无作用)。
+    // WriteFile 是否将日志写入文件。
+    // FileSeparate 是否按照日志级别写入不同的日志文件。默认为false
     // LogSplitTime 日志分割时间。 默认为24小时
     // MaxSaveTime 日志文件最大保留时间。 默认为7天
     // MaxFileSize 日志文件最大限制,超过后生成新的日志文件。 默认100mb
-    // Style 写入文件内的日志格式是否以Json格式。默认为false
-    // Color 终端日志级别是否高亮显示。默认为True
-    // RootPath 当前项目根目录
+    // JsonStyle 写入文件内的日志格式是否以Json格式。默认为false
     // Plugins ZapOptions插件选项
+    // WrapSkip 要省略的调用栈层
     logger, err = spoor.NewLogger(&spoor.Config{
-        LogDir:             "",
-        FileName:           "",
-        LogLevel:           0,
-        LogPrefix:          "",
-        LogWriterFile:      false,
-        LogWriterFromLevel: false,
-        LogSplitTime:       0,
-        MaxSaveTime:        0,
-        MaxFileSize:        0,
-        Style:              false,
-        Color:              false,
-        RootPath:           "",
-        Plugins:            nil,
+        LogDir:       "./logs",
+        FileName:     "app",
+        Level:        zapcore.DebugLevel,
+        WriteFile:    false,
+        FileSeparate: false,
+        JsonStyle:    false,
+        Plugins:      []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
+        WrapSkip:     0,
+        fileSizeCutter: &fileSizeCutter{
+        MaxBackups:  10,
+        MaxAge:      30,
+        MaxFileSize: 100,
+},
 	})
     if err != nil {
         panic(err)

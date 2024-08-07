@@ -11,22 +11,21 @@ import (
 	"github.com/zlx2019/spoor"
 	"go.uber.org/zap"
 	"testing"
+	"time"
 )
 
 func TestName(t *testing.T) {
-	logger, err := spoor.newLogger(&spoor.Config{
-		LogDir:             "./logs",
-		FileName:           "test_app",
-		LogLevel:           zap.DebugLevel,
-		LogWriterFile:      true,
-		LogWriterFromLevel: false,
-		LogSplitTime:       0,
-		MaxSaveTime:        0,
-		MaxFileSize:        0,
-		Style:              false,
-		Plugins:            []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
-		WrapSkip:           1,
-	})
+	logger, err := spoor.NewSpoor(&spoor.Config{
+		LogDir:        "./logs",
+		FileName:      "app",
+		Level:         zap.DebugLevel,
+		WriteFile:     true,
+		FileSeparate:  false,
+		JsonStyle:     false,
+		Plugins:       []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
+		WrapSkip:      1,
+		LogTimeFormat: "2006-01-02 15:04:05",
+	}, spoor.WithTimeCutter(time.Hour, time.Hour, 1024*1024*1024))
 	if err != nil {
 		panic(err)
 	}

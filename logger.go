@@ -19,21 +19,22 @@ import (
 
 // 根据配置选项,创建一个Zap日志组件
 func newLogger(opt *Config) (*Spoor, error) {
+	opt.setupDefault()
 	// 创建Zap Encoder
 	var encoder zapcore.Encoder
-	if opt.Style {
-		encoder = zapcore.NewJSONEncoder(consoleLoggerEncoder())
+	if opt.JsonStyle {
+		encoder = zapcore.NewJSONEncoder(consoleLoggerEncoder(opt.LogTimeFormat))
 	} else {
-		encoder = zapcore.NewConsoleEncoder(consoleLoggerEncoder())
+		encoder = zapcore.NewConsoleEncoder(consoleLoggerEncoder(opt.LogTimeFormat))
 	}
 	// 创建Zap Core
 	var err error
 	var core zapcore.Core
-	if !opt.LogWriterFile {
+	if !opt.WriteFile {
 		// 日志不写入文件
-		core = zapcore.NewCore(encoder, os.Stdout, opt.LogLevel)
+		core = zapcore.NewCore(encoder, os.Stdout, opt.Level)
 	} else {
-		// 日志文件持久化,创建多个Core
+		// 日志写入终端 && 文件
 		core, err = newCores(opt, encoder)
 	}
 	if err != nil {
@@ -52,7 +53,7 @@ func newLogger(opt *Config) (*Spoor, error) {
 // newCores 构建Zap Core
 func newCores(opt *Config, encoder zapcore.Encoder) (zapcore.Core, error) {
 	// 判断需要生成一或多个日志文件
-	if opt.LogWriterFromLevel {
+	if opt.FileSeparate {
 		// 详细记录 按照不同的日志级别,写入不到不同的日志文件中.只划分三个等级 info、debug、error。error文件中存储所有大于info级别的日志
 		// 创建info级别Core
 		infoCore, err := newLevelCore(zapcore.InfoLevel, opt)
@@ -71,36 +72,53 @@ func newCores(opt *Config, encoder zapcore.Encoder) (zapcore.Core, error) {
 		}
 		// 创建终端日志Core
 		var stdoutCore zapcore.Core
-		stdoutCore = zapcore.NewCore(encoder, os.Stdout, opt.LogLevel)
+		stdoutCore = zapcore.NewCore(encoder, os.Stdout, opt.Level)
 		cores := zapcore.NewTee(infoCore, debugCore, errorCore, stdoutCore)
 		return cores, nil
-	} else {
-		// 所有日志记录到一个日志文件中
-		// 创建日志文件流
-		fileWriter, err := writerLoggerByFileSize(opt.GetFileName(), opt)
-		if err != nil {
-			return nil, err
-		}
-		// 合并输入流,将日志同时写到终端和文件中
-		var fileCore zapcore.Core
-		if opt.Style {
-			fileCore = zapcore.NewCore(zapcore.NewJSONEncoder(fileLoggerEncoder()), fileWriter, opt.LogLevel)
-		} else {
-			fileCore = zapcore.NewCore(zapcore.NewConsoleEncoder(fileLoggerEncoder()), fileWriter, opt.LogLevel)
-		}
-		// 创建终端日志流
-		stdoutCore := zapcore.NewCore(encoder, os.Stdout, opt.LogLevel)
-		// 是否启用终端日志级别高亮
-		// 合并为一个core
-		core := zapcore.NewTee(fileCore, stdoutCore)
-		return core, nil
 	}
+	// 所有日志记录到一个日志文件中
+	// 创建日志文件写入器
+	var writerSyncer zapcore.WriteSyncer
+	var err error
+	if opt.timeCutter != nil {
+		writerSyncer, err = newWriterSyncerByTime(opt.GetFileName(), opt)
+	}
+	if opt.fileSizeCutter != nil {
+		writerSyncer, err = newWriterSyncerByFileSize(opt.GetFileName(), opt)
+	}
+	if err != nil {
+		return nil, err
+	}
+	// 合并输入流,将日志同时写到终端和文件中
+	var fileCore zapcore.Core
+	if opt.JsonStyle {
+		fileCore = zapcore.NewCore(zapcore.NewJSONEncoder(fileLoggerEncoder(opt.LogTimeFormat)), writerSyncer, opt.Level)
+	} else {
+		fileCore = zapcore.NewCore(zapcore.NewConsoleEncoder(fileLoggerEncoder(opt.LogTimeFormat)), writerSyncer, opt.Level)
+	}
+	// 创建终端日志流
+	stdoutCore := zapcore.NewCore(encoder, os.Stdout, opt.Level)
+	// 是否启用终端日志级别高亮
+	// 合并为一个core
+	core := zapcore.NewTee(fileCore, stdoutCore)
+	//  TODO 添加日志统一
+	// core = core.With([]zap.Field{zap.String("prefix", "APP")})
+	return core, nil
 }
 
 // newLevelCore 根据不同日志级别创建Zap Core
 func newLevelCore(level zapcore.Level, opt *Config) (zapcore.Core, error) {
 	// 创建日志文件流
-	writer, err := writerLoggerByFileSize(opt.GetFileNameLevel(level.String()), opt)
+	var writeSyncer zapcore.WriteSyncer
+	var err error
+	switch {
+	case opt.fileSizeCutter != nil && opt.timeCutter != nil:
+		writeSyncer, err = newWriterSyncerByFileSize(opt.GetFileNameLevel(level.String()), opt)
+	case opt.fileSizeCutter != nil:
+		writeSyncer, err = newWriterSyncerByFileSize(opt.GetFileNameLevel(level.String()), opt)
+	case opt.timeCutter != nil:
+		writeSyncer, err = newWriterSyncerByTime(opt.GetFileNameLevel(level.String()), opt)
+	}
 	if err != nil {
 		return nil, errors.New(fmt.Sprintf("create %s level file error \n", level.String()))
 	}
@@ -122,21 +140,21 @@ func newLevelCore(level zapcore.Level, opt *Config) (zapcore.Core, error) {
 	}
 	// 创建Core
 	var core zapcore.Core
-	if opt.Style {
-		core = zapcore.NewCore(zapcore.NewJSONEncoder(fileLoggerEncoder()), writer, condition)
+	if opt.JsonStyle {
+		core = zapcore.NewCore(zapcore.NewJSONEncoder(fileLoggerEncoder(opt.LogTimeFormat)), writeSyncer, condition)
 	} else {
-		core = zapcore.NewCore(zapcore.NewConsoleEncoder(fileLoggerEncoder()), writer, condition)
+		core = zapcore.NewCore(zapcore.NewConsoleEncoder(fileLoggerEncoder(opt.LogTimeFormat)), writeSyncer, condition)
 	}
 	return core, nil
 }
 
 // 日志输入流，按照日志文件大小分割
-func writerLoggerByFileSize(fileName string, opt *Config) (zapcore.WriteSyncer, error) {
+func newWriterSyncerByFileSize(fileName string, opt *Config) (zapcore.WriteSyncer, error) {
 	writer := lumberjack.Logger{
 		Filename:   fmt.Sprintf("%s.log", fileName),
-		MaxSize:    int(opt.MaxFileSize),      // 文件最大写入限制, 单位MB
-		MaxBackups: 30,                        // 最大保留日志文件数量
-		MaxAge:     int(opt.MaxSaveTime / 24), // 最大保留日志文件天数
+		MaxSize:    opt.fileSizeCutter.MaxFileSize, // 文件最大写入限制, 单位MB
+		MaxBackups: opt.fileSizeCutter.MaxBackups,  // 最大保留日志文件数量
+		MaxAge:     opt.fileSizeCutter.MaxAge,      // 最大保留日志文件天数
 		LocalTime:  true,
 		Compress:   false,
 	}
@@ -144,17 +162,17 @@ func writerLoggerByFileSize(fileName string, opt *Config) (zapcore.WriteSyncer, 
 }
 
 // 日志输入流，按照日期分割写入
-func writerLoggerByTime(fileName string, opt *Config) (zapcore.WriteSyncer, error) {
+func newWriterSyncerByTime(fileName string, opt *Config) (zapcore.WriteSyncer, error) {
 	// 日志文件名,加上根据日期时间后缀
 	logFileName := fmt.Sprintf("%s.%s", fileName, "%Y-%m-%d.log")
 	// 日志临时当前文件名
-	_ = fmt.Sprintf("%s.log", fileName)
+	logTempFileName := fmt.Sprintf("%s.log", fileName)
 	// 创建日志文件
 	write, err := rotatelogs.New(logFileName,
-		//rotatelogs.WithLinkName(logTempFileName),      //生成正在写入的日志文件软链接,方便查看
-		rotatelogs.WithRotationTime(opt.LogSplitTime), //日志切割时间间隔
-		rotatelogs.WithMaxAge(opt.MaxSaveTime),        //日志最长保留时间
-		rotatelogs.WithRotationSize(opt.MaxFileSize),  //日志文件最大限制
+		rotatelogs.WithLinkName(logTempFileName),                 //生成正在写入的日志文件软链接,方便查看
+		rotatelogs.WithRotationTime(opt.timeCutter.SeparateTime), //日志切割时间间隔
+		rotatelogs.WithMaxAge(opt.timeCutter.MaxAge),             //日志最长保留时间
+		rotatelogs.WithRotationSize(opt.timeCutter.MaxFileSize),  //日志文件最大限制
 	)
 	if err != nil {
 		return nil, err
