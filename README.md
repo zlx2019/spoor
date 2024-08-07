@@ -1,11 +1,9 @@
-# spoor
+# Spoor
 _**野兽的足迹.**_ 
 
-一个日志组件库.
+基于[Zap](https://github.com/uber-go/zap)日志框架简单封装的日志工具库.
 <hr>
 
-目前支持的日志组件有:
-- zap
 
 ## 🚀 Install
 ```shell
