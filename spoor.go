@@ -32,7 +32,7 @@ func (sp *Spoor) Log(level zapcore.Level, s string, fields ...zap.Field) {
 }
 
 func (sp *Spoor) LogSf(level zapcore.Level, s string, v ...interface{}) {
-	sp.Logger.Sugar().Logf(level, s, v)
+	sp.Logger.Sugar().Logf(level, s, v...)
 }
 
 func (sp *Spoor) Info(s string, fields ...zap.Field) {

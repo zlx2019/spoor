@@ -165,7 +165,7 @@ func newWriterSyncerByFileSize(fileName string, opt *Config) (zapcore.WriteSynce
 func newWriterSyncerByTime(fileName string, opt *Config) (zapcore.WriteSyncer, error) {
 	// 日志文件名,加上根据日期时间后缀
 	logFileName := fmt.Sprintf("%s.%s", fileName, "%Y-%m-%d.log")
-	// 日志临时当前文件名
+	// 当前日志软链接名称
 	logTempFileName := fmt.Sprintf("%s.log", fileName)
 	// 创建日志文件
 	write, err := rotatelogs.New(logFileName,

@@ -9,22 +9,29 @@ import (
 
 // 日志级别颜色
 const (
-	infoLevelColor  = "\033[92m[INFO]\033[0m"
-	debugLevelColor = "\033[93m[DEBUG]\033[0m"
-	warnLevelColor  = "\033[93m[WARN]\033[0m"
-	errorLevelColor = "\033[91m[ERROR]\033[0m"
-	panicLevelColor = "\033[91m[PANIC]\033[0m"
-	fatalLevelColor = "\033[91m[FATAL]\033[0m"
+	infoLevelColor  = "\033[1;92m[INFO]\033[0m"
+	debugLevelColor = "\033[1;93m[DEBUG]\033[0m"
+	warnLevelColor  = "\033[1;93m[WARN]\033[0m"
+	errorLevelColor = "\033[1;91m[ERROR]\033[0m"
+	panicLevelColor = "\033[1;91m[PANIC]\033[0m"
+	fatalLevelColor = "\033[1;91m[FATAL]\033[0m"
+
+	// more cool
+	infoLevelColorMc  = "\033[1;38;5;81m[INFO]\033[0m"
+	debugLevelColorMc = "\033[1;38;5;211m[DEBUG]\033[0m"
+	warnLevelColorMc  = "\033[1;38;5;202m[WARN]\033[0m"
+	panicLevelColorMc = "\033[1;38;5;160m[PANIC]\033[0m"
+	fatalLevelColorMc = "\033[1;38;5;160m[FATAL]\033[0m"
 )
 
 // Zap 日志格式化编码器
-
 // 输出在终端上风格的日志编码器
 func consoleLoggerEncoder(format string) zapcore.EncoderConfig {
 	encoder := zap.NewProductionEncoderConfig()
 	// 日志时间自定义格式化
 	encoder.EncodeTime = func(t time.Time, encoder zapcore.PrimitiveArrayEncoder) {
-		encoder.AppendString(t.Local().Format(format))
+		timeText := t.Local().Format(format)
+		encoder.AppendString(fmt.Sprintf("\u001B[38;5;214m[%s]\u001B[0m", timeText))
 	}
 	encoder.EncodeLevel = terminalLogLevelEncoder // 终端日志级别自定义处理
 	encoder.EncodeCaller = callerEncoder          // 日志输出位置处理
@@ -52,11 +59,11 @@ func fileLoggerEncoder(format string) zapcore.EncoderConfig {
 func terminalLogLevelEncoder(level zapcore.Level, encoder zapcore.PrimitiveArrayEncoder) {
 	switch level {
 	case zapcore.InfoLevel:
-		encoder.AppendString(infoLevelColor)
+		encoder.AppendString(infoLevelColorMc)
 	case zapcore.DebugLevel:
-		encoder.AppendString(debugLevelColor)
+		encoder.AppendString(debugLevelColorMc)
 	case zapcore.WarnLevel:
-		encoder.AppendString(warnLevelColor)
+		encoder.AppendString(warnLevelColorMc)
 	case zapcore.ErrorLevel:
 		encoder.AppendString(errorLevelColor)
 	case zapcore.PanicLevel:
