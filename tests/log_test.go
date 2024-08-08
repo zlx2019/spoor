@@ -16,20 +16,21 @@ import (
 
 func TestName(t *testing.T) {
 	logger, err := spoor.NewSpoor(&spoor.Config{
-		LogDir:        "./logs",
-		FileName:      "app",
-		Level:         zap.DebugLevel,
-		WriteFile:     true,
-		FileSeparate:  false,
-		JsonStyle:     false,
-		Plugins:       []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
-		WrapSkip:      1,
-		LogTimeFormat: "2006-01-02 15:04:05",
+		LogDir:       "./logs",
+		FileName:     "app",
+		Level:        zap.DebugLevel,
+		WriteFile:    true,
+		FileSeparate: false,
+		JsonStyle:    false,
+		Plugins:      []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
+		WrapSkip:     1,
 	}, spoor.WithTimeCutter(time.Hour, time.Hour, 1024*1024*1024))
 	if err != nil {
 		panic(err)
 	}
 	defer logger.Sync()
+	logger.Info("INFO")
+	logger.InfoSf("INFO %s", "Hello")
 
 	sugaredLogger := logger.Sugar()
 	logger.LogSf(spoor.INFO, "Hello World: %s", "张三")

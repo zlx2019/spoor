@@ -7,7 +7,7 @@ _**野兽的足迹.**_
 
 ## 🚀 Install
 ```shell
-go get github.com/zlx2019/spoor@latest
+go get -u github.com/zlx2019/spoor
 ```
 <hr>
 
@@ -17,16 +17,14 @@ go get github.com/zlx2019/spoor@latest
 func main() {
     logger, err := spoor.NewDefaultSpoor()
     if err != nil {
-        panic(err)
+    panic(err)
     }
-    defer logger.Sync() 
-    // 获取SugarLogger
-    sugaredLogger := logger.Sugar()
+    defer logger.Sync()
     // 输出日志
     logger.Info("INFO")
     logger.Debug("DEBUG")
     logger.Error("ERROR")
-    sugaredLogger.Infof("username %s", "admin")
+    logger.InfoSf("username %s", "admin")
 }
 ```
 ### use options logger
@@ -38,13 +36,9 @@ func main() {
         panic(err)
     }
     defer logger.Sync() 
-    // 获取SugarLogger
-    sugaredLogger := logger.Sugar()
-    // 输出日志
     logger.Info("INFO")
     logger.Debug("DEBUG")
     logger.Error("ERROR")
-    sugaredLogger.Infof("username %s", "admin")
 }
 ```
 ### custom logger

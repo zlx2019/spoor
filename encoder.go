@@ -95,11 +95,6 @@ func fileLogLevelEncoder(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder)
 	}
 }
 
-// 日志时间格式化
-func timeFormatEncoder(t time.Time, encoder zapcore.PrimitiveArrayEncoder) {
-	encoder.AppendString(t.Local().Format("2006-01-02 15:04:05.000"))
-}
-
 // 日志输出位置处理
 func callerEncoder(caller zapcore.EntryCaller, encoder zapcore.PrimitiveArrayEncoder) {
 	encoder.AppendString(caller.TrimmedPath())

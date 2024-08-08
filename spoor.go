@@ -81,7 +81,7 @@ func (sp *Spoor) FatalSf(s string, v ...interface{}) {
 
 // NewDefaultSpoor 构建默认的日志组件
 func NewDefaultSpoor() (*Spoor, error) {
-	return newLogger(DefaultConfig())
+	return newLogger(defaultConfig())
 }
 
 // NewSpoor 根据配置构建日志组件
@@ -94,7 +94,7 @@ func NewSpoor(config *Config, options ...Option) (*Spoor, error) {
 
 // NewSpoorWithOptions 创建日志组件
 func NewSpoorWithOptions(options ...Option) (*Spoor, error) {
-	config := DefaultConfig()
+	config := defaultConfig()
 	for _, option := range options {
 		option(config)
 	}

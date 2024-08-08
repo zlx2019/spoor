@@ -43,8 +43,8 @@ type fileSizeCutter struct {
 	MaxFileSize int // 日志文件最大可写入的日志量(mb)
 }
 
-// DefaultConfig 获取默认配置项
-func DefaultConfig() *Config {
+// defaultConfig 获取默认配置项
+func defaultConfig() *Config {
 	return &Config{
 		LogDir:        "./logs",
 		FileName:      "app",
@@ -54,7 +54,7 @@ func DefaultConfig() *Config {
 		LogTimeFormat: "2006/01/02 15:04:05",
 		JsonStyle:     false,
 		Plugins:       []zap.Option{zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel)},
-		WrapSkip:      0,
+		WrapSkip:      1,
 		fileSizeCutter: &fileSizeCutter{
 			MaxBackups:  10,
 			MaxAge:      30,
